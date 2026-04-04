@@ -9,7 +9,8 @@ from .views import (
     get_user_profile,
     get_admin_stats,
     request_otp,
-    login_with_otp
+    login_with_otp,
+    reset_password
 )
 router = DefaultRouter()
 router.register(r'projects', ProjectViewSet)
@@ -25,4 +26,5 @@ urlpatterns = [
     path('admin-stats/', get_admin_stats, name='admin-stats'),
     path('request-otp/', request_otp, name='request-otp'),
     path('login-with-otp/', login_with_otp, name='login-with-otp'),
+    path('reset-password/', reset_password, name='reset_password'),
 ]

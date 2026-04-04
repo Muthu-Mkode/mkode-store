@@ -218,12 +218,19 @@ def request_otp(request):
     email = request.data.get('email')
     name = request.data.get('name', 'Developer')
     action_type = request.data.get('action')
+
     if action_type == 'login':
         password = request.data.get('password')
         user = authenticate(username=email, password=password)
         if not user:
             return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
         name = user.name
+    elif action_type == 'reset_password':
+        try:
+            user = User.objects.get(email=email)
+            name = user.name
+        except User.DoesNotExist:
+            return Response({"error": "No account found with this email."}, status=status.HTTP_404_NOT_FOUND)
 
     if email == 'razorpay@mkode.com':
         cache.set(f"otp_{email}", "123456", timeout=300)
@@ -269,3 +276,25 @@ def login_with_otp(request):
             'access': str(refresh.access_token),
         })
     return Response({"error": "Authentication failed."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def reset_password(request):
+    email = request.data.get('email')
+    otp_submitted = request.data.get('otp')
+    new_password = request.data.get('new_password')
+
+    cached_otp = cache.get(f"otp_{email}")
+    if not cached_otp or cached_otp != otp_submitted:
+        return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.save()
+
+        cache.delete(f"otp_{email}")
+        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)

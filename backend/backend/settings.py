@@ -66,14 +66,28 @@ DATABASES = {
     )
 }
 
-# --- THE FIX: BULLETPROOF CACHING FOR OTPs ---
-# This forces all Gunicorn workers to look at the database for OTPs, preventing random failures.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'mkode_cache_table',
+# --- REDIS CACHE SETUP ---
+# Professional grade caching. No database tables required.
+REDIS_URL = os.environ.get('REDIS_URL')
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
+        }
     }
-}
+else:
+    # Local fallback so your project still runs without Redis installed
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

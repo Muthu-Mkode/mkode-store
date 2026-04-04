@@ -17,6 +17,7 @@ import ScrollToTop from './components/ScrollToTop'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import License from './pages/License'
+import ForgotPassword from './pages/ForgotPassword'
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/license" element={<License />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
       </main>
       <Footer />
