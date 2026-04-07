@@ -42,6 +42,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             return obj.zip_file.url
         return None
 
+
 class CartItemSerializer(serializers.ModelSerializer):
     project = ProjectSerializer(read_only=True)
     project_id = serializers.PrimaryKeyRelatedField(
@@ -52,13 +53,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         model = CartItem
         fields = ['id', 'user', 'project', 'project_id']
         read_only_fields = ['user']
-
-class PurchaseSerializer(serializers.ModelSerializer):
-    project = ProjectSerializer(read_only=True)
-
-    class Meta:
-        model = Purchase
-        fields = ['id', 'user', 'project', 'purchased_at']
 
 
 class PurchaseSerializer(serializers.ModelSerializer):
@@ -71,4 +65,3 @@ class PurchaseSerializer(serializers.ModelSerializer):
         model = Purchase
         fields = ['id', 'user', 'project', 'project_id', 'purchased_at']
         read_only_fields = ['user']
-

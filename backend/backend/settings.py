@@ -66,8 +66,6 @@ DATABASES = {
     )
 }
 
-# --- REDIS CACHE SETUP ---
-# Professional grade caching. No database tables required.
 REDIS_URL = os.environ.get('REDIS_URL')
 
 if REDIS_URL:

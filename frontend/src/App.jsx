@@ -18,6 +18,7 @@ import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import License from './pages/License'
 import ForgotPassword from './pages/ForgotPassword'
+import VerifyAuth from './pages/VerifyAuth';
 
 function App() {
   return (
@@ -37,11 +38,11 @@ function App() {
           <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/project/:id" element={<ProjectDetails />} />
           <Route path="/checkout" element={<Checkout />} />
-          
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/license" element={<License />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-auth" element={<VerifyAuth />} />
         </Routes>
       </main>
       <Footer />
