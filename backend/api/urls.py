@@ -7,8 +7,7 @@ from .views import (
     PurchaseViewSet,
     get_user_profile,
     get_admin_stats,
-    request_access,
-    verify_access
+    register_user
 )
 
 router = DefaultRouter()
@@ -22,6 +21,5 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/', get_user_profile, name='user_profile'),
     path('admin-stats/', get_admin_stats, name='admin-stats'),
-    path('request-access/', request_access, name='request-access'),
-    path('verify-access/', verify_access, name='verify-access'),
+    path('register/', register_user, name='register'),
 ]

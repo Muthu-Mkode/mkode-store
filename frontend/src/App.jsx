@@ -13,17 +13,15 @@ import AdminRoute from './components/AdminRoute'
 import AdminDashboard from './pages/AdminDashboard'
 import ProjectDetails from './pages/ProjectDetails'
 import Checkout from './pages/Checkout'
-import ScrollToTop from './components/ScrollToTop' 
+import ScrollToTop from './components/ScrollToTop'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import License from './pages/License'
-import ForgotPassword from './pages/ForgotPassword'
-import VerifyAuth from './pages/VerifyAuth';
 
 function App() {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
-      <ScrollToTop /> 
+      <ScrollToTop />
       <Navbar />
       <main className="flex-grow">
         <Routes>
@@ -41,8 +39,6 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/license" element={<License />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-auth" element={<VerifyAuth />} />
         </Routes>
       </main>
       <Footer />

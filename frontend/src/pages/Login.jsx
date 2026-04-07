@@ -13,7 +13,6 @@ const Login = () => {
   
   const { login, isAuthenticated } = useAuth()
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/')
@@ -26,10 +25,9 @@ const Login = () => {
     setLoading(true)
 
     try {
-      // Direct call to Django's standard JWT TokenObtainPairView
       const response = await api.post('/login/', { email, password })
       login(response.data.access, response.data.refresh) 
-      navigate('/store') // Redirect to store on success
+      navigate('/store')
     } catch (err) {
       setError('Invalid email or password. Please try again.')
     } finally {
@@ -42,7 +40,6 @@ const Login = () => {
   return (
     <div className="pt-32 pb-24 min-h-screen bg-[#fafafa] flex items-center justify-center px-6">
       <div className="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-2xl shadow-gray-900/5 border border-gray-100">
-        
         <div className="animate-in fade-in slide-in-from-left-4 duration-300">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-black text-gray-900 mb-2">Welcome back</h1>
@@ -72,10 +69,7 @@ const Login = () => {
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2 px-1">
-                <label className="block text-sm font-bold text-gray-900">Password</label>
-                <Link to="/forgot-password" className="text-sm font-bold text-blue-600 hover:text-blue-700">Forgot?</Link>
-              </div>
+              <label className="block text-sm font-bold text-gray-900 mb-2 pl-1">Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input

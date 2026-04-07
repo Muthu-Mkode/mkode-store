@@ -6,26 +6,11 @@ from .models import User, Project, CartItem, Purchase
 from .serializers import UserSerializer, ProjectSerializer, CartItemSerializer, PurchaseSerializer
 import razorpay
 from django.db.models import Sum
-from django.core.mail import EmailMultiAlternatives
-from rest_framework_simplejwt.tokens import RefreshToken
 from PIL import Image
 import io
-import sys
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-import socket
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
-
-old_getaddrinfo = socket.getaddrinfo
-def new_getaddrinfo(*args, **kwargs):
-    responses = old_getaddrinfo(*args, **kwargs)
-    return [response for response in responses if response[0] == socket.AF_INET]
-socket.getaddrinfo = new_getaddrinfo
-
 
 def compress_image_to_webp(image_file):
     if not image_file:
@@ -49,7 +34,6 @@ def compress_image_to_webp(image_file):
     except Exception as e:
         print(f"Image Compression Error: {e}")
         return None
-
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
@@ -87,7 +71,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             return Response({"error": "Failed to update project."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
@@ -161,7 +144,6 @@ class CartItemViewSet(viewsets.ModelViewSet):
             return Response({"error": "An error occurred while finalizing your purchase. Please contact support."},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class PurchaseViewSet(viewsets.ModelViewSet):
     serializer_class = PurchaseSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -171,7 +153,6 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 
 @api_view(['GET', 'PUT'])
 @permission_classes([permissions.IsAuthenticated])
@@ -201,7 +182,6 @@ def get_user_profile(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
-
 @api_view(['GET'])
 @permission_classes([permissions.IsAdminUser])
 def get_admin_stats(request):
@@ -217,113 +197,26 @@ def get_admin_stats(request):
     except Exception as e:
         return Response({"error": "Could not load stats."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-def send_magic_link(user, action_type):
-    """
-    Returns True if email sent successfully, False otherwise.
-    """
-    token = default_token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-    link = f"{frontend_url}/verify-auth?uid={uid}&token={token}&action={action_type}"
-    subject = "Verify your Mkode account"
-
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; text-align: center; padding: 40px; border: 1px solid #eee; border-radius: 24px;">
-        <h1 style="color: #111827; margin-bottom: 20px;">M<span style="color: #2563EB;">KODE</span></h1>
-        <p style="color: #4B5563; font-size: 16px; line-height: 1.5;">Hi {user.name}, click the button below to verify your identity and access your account.</p>
-        <a href="{link}" style="display: inline-block; background: #2563EB; color: white; padding: 16px 32px; text-decoration: none; border-radius: 14px; font-weight: bold; margin-top: 24px; box-shadow: 0 10px 15px rgba(37, 99, 235, 0.2);">Verify Account</a>
-        <p style="color: #9CA3AF; font-size: 12px; margin-top: 30px;">This link will expire in 24 hours.</p>
-    </div>
-    """
-
-    try:
-        msg = EmailMultiAlternatives(subject, f"Verify here: {link}", settings.EMAIL_HOST_USER, [user.email])
-        msg.attach_alternative(html_content, "text/html")
-        msg.send(fail_silently=False)
-        return True
-    except Exception as e:
-        print(f"SMTP EMAIL ERROR: {e}")
-        return False
-
-
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
-def request_access(request):
+def register_user(request):
     email = request.data.get('email')
-    action_type = request.data.get('action')
+    name = request.data.get('name', 'Developer')
+    password = request.data.get('password')
 
-    if not email:
-        return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+    if not email or not password:
+        return Response({"error": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if action_type == 'register':
-        if User.objects.filter(email=email).exists():
-            return Response({"error": "Email already registered."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            name = request.data.get('name', 'Developer')
-            password = request.data.get('password')
-            user = User.objects.create_user(email=email, username=email, name=name, password=password)
-            user.is_active = False
-            user.save()
-
-            if send_magic_link(user, action_type):
-                return Response({"message": "Verification link sent to email."})
-            else:
-                user.delete()
-                return Response({"error": "We couldn't send the email right now. Please try again later."},
-                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        except Exception as e:
-            return Response({"error": "An unexpected error occurred during registration."},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    if action_type == 'reset_password':
-        try:
-            user = User.objects.get(email=email)
-            if send_magic_link(user, action_type):
-                return Response({"message": "Verification link sent to email."})
-            else:
-                return Response({"error": "Failed to send reset email. Please try again later."},
-                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        except User.DoesNotExist:
-            return Response({"error": "Account not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    return Response({"error": "Invalid action type."}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def verify_access(request):
-    uidb64 = request.data.get('uid')
-    token = request.data.get('token')
-    action_type = request.data.get('action')
-    new_password = request.data.get('new_password')
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "Email already registered."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return Response({"error": "Invalid or expired verification link."}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.create_user(email=email, username=email, name=name, password=password)
+        user.is_active = True
+        user.save()
 
-    if default_token_generator.check_token(user, token):
-        try:
-            if action_type == 'register':
-                user.is_active = True
-            if action_type == 'reset_password' and new_password:
-                user.set_password(new_password)
-            user.save()
-
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': UserSerializer(user).data
-            })
-        except Exception as e:
-            return Response({"error": "Failed to authenticate account. Please contact support."},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    return Response({"error": "Verification link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Account created successfully."}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        print(f"Registration Error: {e}")
+        return Response({"error": "An unexpected error occurred during registration."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
