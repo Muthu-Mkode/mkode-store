@@ -12,13 +12,19 @@ from PIL import Image
 import io
 import sys
 from django.core.files.uploadedfile import InMemoryUploadedFile
-
-# New imports for Magic Link functionality
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+import socket
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+
+old_getaddrinfo = socket.getaddrinfo
+def new_getaddrinfo(*args, **kwargs):
+    responses = old_getaddrinfo(*args, **kwargs)
+    return [response for response in responses if response[0] == socket.AF_INET]
+socket.getaddrinfo = new_getaddrinfo
 
 
 def compress_image_to_webp(image_file):
@@ -212,7 +218,6 @@ def get_admin_stats(request):
         return Response({"error": "Could not load stats."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# --- MAGIC LINK HELPER ---
 
 def send_magic_link(user, action_type):
     """
@@ -236,15 +241,12 @@ def send_magic_link(user, action_type):
     try:
         msg = EmailMultiAlternatives(subject, f"Verify here: {link}", settings.EMAIL_HOST_USER, [user.email])
         msg.attach_alternative(html_content, "text/html")
-        # fail_silently=False so we catch the crash here, not in the API view
         msg.send(fail_silently=False)
         return True
     except Exception as e:
         print(f"SMTP EMAIL ERROR: {e}")
         return False
 
-
-# --- AUTH ENDPOINTS ---
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -269,7 +271,6 @@ def request_access(request):
             if send_magic_link(user, action_type):
                 return Response({"message": "Verification link sent to email."})
             else:
-                # Rollback user creation if email fails so they aren't locked out forever
                 user.delete()
                 return Response({"error": "We couldn't send the email right now. Please try again later."},
                                 status=status.HTTP_503_SERVICE_UNAVAILABLE)
